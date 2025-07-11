@@ -3,6 +3,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 
 class TeleopNode : public rclcpp::Node
 {
@@ -11,14 +12,24 @@ public:
   : Node("turtlebot3_joy_teleop")
   {
     // Declare parameters
-    this->declare_parameter("enable_button", 5);
-    this->declare_parameter("axis_linear", 1);
-    this->declare_parameter("axis_angular", 0);
-    this->declare_parameter("scale_linear", 0.5);
-    this->declare_parameter("scale_angular", 0.5);
-    this->declare_parameter("require_enable", true);
+    declare_parameter("joy_topic",        "joy");              // вход 1
+    declare_parameter("spacenav_topic",   "spacenav/joy");     // вход 2 (можно "")
+    declare_parameter("cmd_vel_topic",    "cmd_vel");          // выход
+    declare_parameter("use_timestamp",    true);              // Twist vs TwistStamped
+
+    declare_parameter("enable_button", 5);   // какая кнопка «Dead-man»
+    declare_parameter("axis_linear", 1);     // ось вперёд/назад
+    declare_parameter("axis_angular", 0);    // ось поворота
+    declare_parameter("scale_linear", 0.5);  // макс. скорость, м/с
+    declare_parameter("scale_angular", 0.5); // макс. угл. скорость, рад/с
+    declare_parameter("require_enable", true);// нужно ли держать кнопку
 
     // Get parameters
+    joy_topic_       = get_parameter("joy_topic").as_string();
+    spacenav_topic_  = get_parameter("spacenav_topic").as_string();
+    cmd_vel_topic_   = get_parameter("cmd_vel_topic").as_string();
+    use_timestamp_   = get_parameter("use_timestamp").as_bool();
+
     enable_button_ = this->get_parameter("enable_button").as_int();
     axis_linear_   = this->get_parameter("axis_linear").as_int();
     axis_angular_  = this->get_parameter("axis_angular").as_int();
@@ -27,32 +38,41 @@ public:
     require_enable_= this->get_parameter("require_enable").as_bool();
 
     // Publisher for /cmd_vel
-    pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    if (use_timestamp_) {
+      twist_stamped_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(
+                              cmd_vel_topic_, 10);
+    } else {
+      twist_pub_ = create_publisher<geometry_msgs::msg::Twist>(
+                              cmd_vel_topic_, 10);
+    }
 
     // Subscribers for joystick and spacenav
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-      "joy", 10,
+      joy_topic_, 10,
       std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1)
     );
     spacenav_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-      "spacenav/joy", 10,
+      spacenav_topic_, 10,
       std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1)
     );
 
-    RCLCPP_INFO(this->get_logger(), "Teleop C++ node started");
+    RCLCPP_INFO(this->get_logger(),
+                "Joystick teleop C++ node started (out: %s, stamped: %s)",
+                cmd_vel_topic_.c_str(),
+                use_timestamp_ ? "true" : "false");
   }
 
 private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
     // If enable button required but not pressed, skip
-    if (require_enable_)
-    {
-      if (enable_button_ >= static_cast<int>(msg->buttons.size()) || msg->buttons[enable_button_] == 0)
+    if (require_enable_) {
+      if (enable_button_ >= static_cast<int>(msg->buttons.size()) ||
+          msg->buttons[enable_button_] == 0)
         return;
     }
 
-    auto twist = geometry_msgs::msg::Twist();
+    geometry_msgs::msg::Twist twist;
     if (axis_linear_ < static_cast<int>(msg->axes.size())) {
       twist.linear.x = msg->axes[axis_linear_] * scale_linear_;
     }
@@ -60,19 +80,31 @@ private:
       twist.angular.z = msg->axes[axis_angular_] * scale_angular_;
     }
 
-    pub_->publish(twist);
+    if (use_timestamp_) {
+      geometry_msgs::msg::TwistStamped ts;
+      ts.header.stamp = this->get_clock()->now();
+      ts.twist = twist;
+      twist_stamped_pub_->publish(ts);
+    } else {
+      twist_pub_->publish(twist);
+    }
+
+    RCLCPP_DEBUG(get_logger(),
+            "callback: axes[0]=%.2f axes[1]=%.2f  publish...",
+            msg->axes.size() ? msg->axes[0] : 0.0,
+            msg->axes.size() > 1 ? msg->axes[1] : 0.0);
   }
 
   // Parameters
-  int enable_button_;
-  int axis_linear_;
-  int axis_angular_;
-  double scale_linear_;
-  double scale_angular_;
-  bool require_enable_;
+  std::string joy_topic_, spacenav_topic_, cmd_vel_topic_;
+  bool   use_timestamp_, require_enable_;
+  int    enable_button_, axis_linear_, axis_angular_;
+  double scale_linear_, scale_angular_;
 
   // ROS interfaces
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr        twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_pub_;
+
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr spacenav_sub_;
 };
