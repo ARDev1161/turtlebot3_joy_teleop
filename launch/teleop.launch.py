@@ -7,9 +7,9 @@ def generate_launch_description():
             package='joy', executable='joy_node', name='joy_node',
             parameters=[{'dev': '/dev/input/js0'}]
         ),
-        # Node(
-            # package='spacenav_node', executable='spacenav_node', name='spacenav_node'
-        # ),
+        Node(
+            package='spacenav', executable='spacenav_node', name='spacenav_node'
+        ),
         Node(
             package='turtlebot3_joy_teleop', executable='teleop_node', name='teleop_node',
             parameters=[
