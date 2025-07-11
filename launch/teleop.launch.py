@@ -20,8 +20,8 @@ def generate_launch_description():
                 {'enable_button': 5},
                 {'axis_linear': 1},
                 {'axis_angular': 0},
-                {'scale_linear': 0.5},
-                {'scale_angular': 0.5},
+                {'scale_linear': 1.0},
+                {'scale_angular': 1.5},
                 {'require_enable': False}
             ]
         ),
