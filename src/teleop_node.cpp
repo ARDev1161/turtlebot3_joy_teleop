@@ -28,9 +28,12 @@ public:
     cmd_vel_topic_   = get_parameter("cmd_vel_topic").as_string();
     use_timestamp_   = get_parameter("use_timestamp").as_bool();
 
-    enable_button_ = this->get_parameter("enable_button").as_int();
-    axis_linear_   = this->get_parameter("axis_linear").as_int();
-    axis_angular_  = this->get_parameter("axis_angular").as_int();
+    joy_enable_button_  = this->get_parameter("joy_enable_button").as_int();
+    joy_axis_linear_    = this->get_parameter("joy_axis_linear").as_int();
+    joy_axis_angular_   = this->get_parameter("joy_axis_angular").as_int();
+    spnav_enable_button_= this->get_parameter("spnav_enable_button").as_int();
+    spnav_axis_linear_  = this->get_parameter("spnav_axis_linear").as_int();
+    spnav_axis_angular_ = this->get_parameter("spnav_axis_angular").as_int();
     scale_linear_  = this->get_parameter("scale_linear").as_double();
     scale_angular_ = this->get_parameter("scale_angular").as_double();
     require_enable_= this->get_parameter("require_enable").as_bool();
@@ -47,7 +50,7 @@ public:
     // Subscriber for joystick/spacenav
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       joy_topic_, 10,
-      std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1)
+      std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1, false)
     );
 
     RCLCPP_INFO(this->get_logger(),
@@ -57,22 +60,22 @@ public:
   }
 
 private:
-  void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
+  void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg, bool from_spnav)
   {
 
     // If enable button required but not pressed, skip
     if (require_enable_) {
-      if (enable_button_ >= static_cast<int>(msg->buttons.size()) ||
-          msg->buttons[enable_button_] == 0)
+      if (enable_button >= static_cast<int>(msg->buttons.size()) ||
+          msg->buttons[enable_button] == 0)
         return;
     }
 
     geometry_msgs::msg::Twist twist;
-    if (axis_linear_ < static_cast<int>(msg->axes.size())) {
-      twist.linear.x = msg->axes[axis_linear_] * scale_linear_;
+    if (axis_linear < static_cast<int>(msg->axes.size())) {
+      twist.linear.x = msg->axes[axis_linear] * scale_linear_;
     }
-    if (axis_angular_ < static_cast<int>(msg->axes.size())) {
-      twist.angular.z = msg->axes[axis_angular_] * scale_angular_;
+    if (axis_angular < static_cast<int>(msg->axes.size())) {
+      twist.angular.z = msg->axes[axis_angular] * scale_angular_;
     }
 
     if (use_timestamp_) {
@@ -93,7 +96,8 @@ private:
   // Parameters
   std::string joy_topic_, cmd_vel_topic_;
   bool   use_timestamp_, require_enable_;
-  int    enable_button_, axis_linear_, axis_angular_;
+  int    joy_enable_button_,  joy_axis_linear_,  joy_axis_angular_;
+  int    spnav_enable_button_, spnav_axis_linear_, spnav_axis_angular_;
   double scale_linear_, scale_angular_;
 
   // ROS interfaces
