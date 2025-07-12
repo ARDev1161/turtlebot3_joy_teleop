@@ -17,6 +17,9 @@ def generate_launch_description():
                 {'joy_topic': 'joy'},
                 {'cmd_vel_topic': 'cmd_vel'},
                 {'use_timestamp': True},
+                {'enable_button': 4},
+                {'axis_linear': 1},
+                {'axis_angular': 0},
                 {'scale_linear': 1.0},
                 {'scale_angular': 1.5},
                 {'require_enable': True}
@@ -30,8 +33,8 @@ def generate_launch_description():
                 {'cmd_vel_topic': 'cmd_vel'},
                 {'use_timestamp': True},
                 {'enable_button': 0},
-                {'axis_linear': 2},
-                {'axis_angular': 4},
+                {'axis_linear': 0},
+                {'axis_angular': 5},
                 {'scale_linear': 1.0},
                 {'scale_angular': 1.5},
                 {'require_enable': True}
