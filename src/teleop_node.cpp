@@ -12,21 +12,19 @@ public:
   : Node("turtlebot3_joy_teleop")
   {
     // Declare parameters
-    declare_parameter("joy_topic",        "joy");              // вход 1
-    declare_parameter("spacenav_topic",   "spacenav/joy");     // вход 2 (можно "")
+    declare_parameter("joy_topic",        "joy");              // вход
     declare_parameter("cmd_vel_topic",    "cmd_vel");          // выход
-    declare_parameter("use_timestamp",    true);              // Twist vs TwistStamped
+    declare_parameter("use_timestamp",    true);                // Twist vs TwistStamped
 
     declare_parameter("enable_button", 5);   // какая кнопка «Dead-man»
-    declare_parameter("axis_linear", 1);     // ось вперёд/назад
-    declare_parameter("axis_angular", 0);    // ось поворота
+    declare_parameter("axis_linear",   1);   // ось вперёд/назад
+    declare_parameter("axis_angular",  0);   // ось поворота
     declare_parameter("scale_linear", 0.5);  // макс. скорость, м/с
     declare_parameter("scale_angular", 0.5); // макс. угл. скорость, рад/с
     declare_parameter("require_enable", true);// нужно ли держать кнопку
 
     // Get parameters
     joy_topic_       = get_parameter("joy_topic").as_string();
-    spacenav_topic_  = get_parameter("spacenav_topic").as_string();
     cmd_vel_topic_   = get_parameter("cmd_vel_topic").as_string();
     use_timestamp_   = get_parameter("use_timestamp").as_bool();
 
@@ -46,13 +44,9 @@ public:
                               cmd_vel_topic_, 10);
     }
 
-    // Subscribers for joystick and spacenav
+    // Subscriber for joystick/spacenav
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       joy_topic_, 10,
-      std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1)
-    );
-    spacenav_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-      spacenav_topic_, 10,
       std::bind(&TeleopNode::joy_callback, this, std::placeholders::_1)
     );
 
@@ -65,6 +59,7 @@ public:
 private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
+
     // If enable button required but not pressed, skip
     if (require_enable_) {
       if (enable_button_ >= static_cast<int>(msg->buttons.size()) ||
@@ -96,7 +91,7 @@ private:
   }
 
   // Parameters
-  std::string joy_topic_, spacenav_topic_, cmd_vel_topic_;
+  std::string joy_topic_, cmd_vel_topic_;
   bool   use_timestamp_, require_enable_;
   int    enable_button_, axis_linear_, axis_angular_;
   double scale_linear_, scale_angular_;
@@ -106,7 +101,6 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_pub_;
 
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr spacenav_sub_;
 };
 
 int main(int argc, char * argv[])
