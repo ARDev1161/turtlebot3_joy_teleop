@@ -10,8 +10,9 @@ def generate_launch_description():
         Node(
             package='spacenav', executable='spacenav_node', name='spacenav_node'
         ),
+        # Teleop for joystick only
         Node(
-            package='turtlebot3_joy_teleop', executable='teleop_node', name='teleop_node',
+            package='turtlebot3_joy_teleop', executable='teleop_node', name='joy_teleop',
             parameters=[
                 {'cmd_vel_topic': 'cmd_vel'},
                 {'use_timestamp': True},
